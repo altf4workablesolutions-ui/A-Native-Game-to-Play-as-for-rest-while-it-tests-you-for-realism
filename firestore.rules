@@ -1,0 +1,90 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net: Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['displayName', 'coins', 'totalSnowCleared', 'highScore', 'bestCombo', 'upgrades', 'selectedColor', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['displayName', 'photoURL', 'coins', 'totalSnowCleared', 'highScore', 'bestCombo', 'upgrades', 'selectedColor', 'createdAt', 'updatedAt'])
+        && data.displayName is string && data.displayName.size() > 0 && data.displayName.size() <= 64
+        && (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 512))
+        && data.coins is number && data.coins >= 0
+        && data.totalSnowCleared is number && data.totalSnowCleared >= 0
+        && data.highScore is number && data.highScore >= 0
+        && data.bestCombo is number && data.bestCombo >= 0
+        && data.upgrades is map
+        && data.selectedColor is string && data.selectedColor.size() <= 32
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidLeaderboardEntry(data) {
+      return data.keys().hasAll(['userId', 'displayName', 'score', 'snowCleared', 'bestCombo', 'district', 'createdAt'])
+        && data.keys().hasOnly(['userId', 'displayName', 'score', 'snowCleared', 'bestCombo', 'district', 'createdAt'])
+        && data.userId is string && data.userId.size() <= 128
+        && data.displayName is string && data.displayName.size() > 0 && data.displayName.size() <= 64
+        && data.score is number && data.score >= 0
+        && data.snowCleared is number && data.snowCleared >= 0
+        && data.bestCombo is number && data.bestCombo >= 0
+        && data.district is string && data.district.size() <= 64
+        && data.createdAt is timestamp;
+    }
+
+    // User profiles: strictly private to owner
+    match /users/{userId} {
+      allow get: if isSignedIn() && request.auth.uid == userId && isValidId(userId);
+      allow list: if false;
+
+      allow create: if isSignedIn()
+        && request.auth.uid == userId
+        && isValidId(userId)
+        && isValidUserProfile(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isSignedIn()
+        && request.auth.uid == userId
+        && isValidId(userId)
+        && isValidUserProfile(incoming())
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'coins', 'totalSnowCleared', 'highScore', 'bestCombo', 'upgrades', 'selectedColor', 'updatedAt']);
+
+      allow delete: if false;
+    }
+
+    // Community town high scores
+    match /leaderboard/{entryId} {
+      allow get, list: if true;
+
+      allow create: if isSignedIn()
+        && isValidId(entryId)
+        && isValidLeaderboardEntry(incoming())
+        && incoming().userId == request.auth.uid
+        && incoming().createdAt == request.time;
+
+      allow update, delete: if false;
+    }
+  }
+}

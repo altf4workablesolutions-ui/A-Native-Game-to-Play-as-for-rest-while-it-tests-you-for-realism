@@ -1,0 +1,107 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with saved snow plowing stats, coins, and equipment upgrades",
+      "type": "object",
+      "properties": {
+        "displayName": {
+          "type": "string",
+          "description": "Display name of the snow plow driver",
+          "maxLength": 64
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "Optional avatar URL",
+          "maxLength": 512
+        },
+        "coins": {
+          "type": "number",
+          "description": "Total cozy coins banked from plowing"
+        },
+        "totalSnowCleared": {
+          "type": "number",
+          "description": "Total square meters of snow plowed"
+        },
+        "highScore": {
+          "type": "number",
+          "description": "All-time personal high score"
+        },
+        "bestCombo": {
+          "type": "number",
+          "description": "Highest combo multiplier achieved"
+        },
+        "upgrades": {
+          "type": "object",
+          "description": "Plow equipment upgrade levels"
+        },
+        "selectedColor": {
+          "type": "string",
+          "description": "Selected vehicle paint scheme",
+          "maxLength": 32
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Account registration timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last save timestamp"
+        }
+      },
+      "required": ["displayName", "coins", "totalSnowCleared", "highScore", "bestCombo", "upgrades", "selectedColor", "createdAt", "updatedAt"]
+    },
+    "LeaderboardEntry": {
+      "title": "LeaderboardEntry",
+      "description": "Global leaderboard entry for high scoring snow plow runs",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "UID of the player",
+          "maxLength": 128
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Driver name",
+          "maxLength": 64
+        },
+        "score": {
+          "type": "number",
+          "description": "Score achieved in the run"
+        },
+        "snowCleared": {
+          "type": "number",
+          "description": "Snow cleared in run"
+        },
+        "bestCombo": {
+          "type": "number",
+          "description": "Max combo during the run"
+        },
+        "district": {
+          "type": "string",
+          "description": "Town district cleared",
+          "maxLength": 64
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Submission timestamp"
+        }
+      },
+      "required": ["userId", "displayName", "score", "snowCleared", "bestCombo", "district", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Individual player profiles and upgrade progress"
+    },
+    "/leaderboard/{entryId}": {
+      "schema": "LeaderboardEntry",
+      "description": "Town community high score leaderboard"
+    }
+  }
+}
